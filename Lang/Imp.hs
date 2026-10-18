@@ -93,27 +93,43 @@ failWith s = ImpExpr $ \_ -> Left s
 eval :: Expr a -> ImpExpr a
 eval (BNot b)     = fmap not (eval b)
 eval (BAnd a b)   = pure (&&) <*> eval a <*> eval b
-eval (BOr a b)    = todo
+eval (BOr a b)    = pure (||) <*> eval a <*> eval b
 
-eval (REq a b)    = todo   
-eval (RLt a b)    = todo
+eval (REq a b)    = pure (==) <*> eval a <*> eval b   
+eval (RLt a b)    = pure (<) <*> eval a <*> eval b  
 
 eval (AVar n)     = readVariable n
-eval (AConst n)   = todo
-eval (APlus a b)  = todo
-eval (AMinus a b) = todo
-eval (AMul a b)   = todo
-eval (ADiv a b)   = todo
-eval (AMod a b)   = todo
+eval (AConst n)   = pure n
+eval (APlus a b)  = pure (+) <*> eval a <*> eval b
+eval (AMinus a b) = pure (-) <*> eval a <*> eval b
+eval (AMul a b)   = pure (*) <*> eval a <*> eval b
+
+
+eval (ADiv a b)   = do
+  x <- eval a
+  y <- eval b
+  pure $ if y == 0 then error "division impossible" else x `div` y 
+
+eval (AMod a b)   = do
+  x <- eval a
+  y <- eval b
+  pure $ if y == 0 then error "mod impossible" else x `mod` y 
 
 
 -- TODO: Refactor the original `exec` function such that it uses 
 -- Either String State instead of State:
 exec :: Cmd -> State -> Either String State
-exec CSkip st = todo
+exec CSkip st = pure st
 exec (CAssign n v) st = do
   value <- runExpr (eval v) st
   pure $ M.insert n value st
-exec (CIfThEl b t e) st = todo
-exec (CWhile b c) st = todo
+exec (CIfThEl b t e) st = do
+  x <- runExpr (eval b) st 
+  if x then exec t st else exec e st
+exec (CWhile b c) st = do
+  x <- runExpr (eval b) st
+  if x then do
+    st' <- exec c st
+    exec (CWhile b c) st' 
+  else pure st
 exec (CSeq cs) st = foldM (flip exec) st cs 

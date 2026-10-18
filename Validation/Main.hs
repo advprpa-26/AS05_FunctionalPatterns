@@ -109,7 +109,8 @@ newtype Validation e r = Validation (Either e r) deriving (Eq, Show)
 -- TODO: Define a Functor instance:
 instance Functor (Validation e) where
   fmap :: (a -> b) -> Validation e a -> Validation e b
-  fmap = todo
+  fmap _ (Validation (Left e)) = Validation (Left e)
+  fmap f (Validation (Right r)) = Validation (Right (f r))
 
 -- To collect all errors, we constrain the error type `e` to be an 
 -- instance of Monoid.
@@ -120,10 +121,11 @@ instance Functor (Validation e) where
 -- TODO: Define an Applicative instance:
 instance (Monoid e) => Applicative (Validation e) where
   pure :: a -> Validation e a
-  pure = todo
+  pure a = Validation (Right a)
 
   (<*>) :: Validation e (a -> b) -> Validation e a -> Validation e b
-  (<*>) = todo
+  Validation (Left e1) <*> Validation (Left e2) = Validation (Left (e1 <> e2))
+  Validation f         <*> Validation a         = Validation (f <*> a)
 
 
 -- To collect errors, we can now equip Validation with a monoidal 

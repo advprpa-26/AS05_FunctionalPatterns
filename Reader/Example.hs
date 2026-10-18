@@ -98,13 +98,18 @@ createBody addr = do
 -- TODO: Implement createAddr using do-notation.
 createAddr :: String -> ConfigReader String
 createAddr name = do
-  todo
+  config <- getConfig
+  pure $ name ++ if devStage config then "@dummy.com" else "@fp.io"
 
+  
 
 -- TODO: Implement createMail using do-notation.
 createMail :: String -> ConfigReader String
 createMail name = do
-  todo
+  config <- getConfig
+  addr <- createAddr name 
+  body <- createBody addr
+  pure $ body
 
 -- Here is how we can run a ConfigReader action with a given config:
 -- Expected value: "mailto:daniel@fp.io\nDear .."
